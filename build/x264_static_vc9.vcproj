@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\source\;..\source\extras;."
+				AdditionalIncludeDirectories="..\;..\extras;."
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;HAVE_CONFIG_H"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -118,7 +118,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="..\source\;..\extras"
+				AdditionalIncludeDirectories="..\;..\extras"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;HAVE_CONFIG_H"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
@@ -177,143 +177,143 @@
 			Name="common"
 			>
 			<File
-				RelativePath="..\source\common\bitstream.c"
+				RelativePath="..\common\bitstream.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\bitstream.h"
+				RelativePath="..\common\bitstream.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\cabac.c"
+				RelativePath="..\common\cabac.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\cabac.h"
+				RelativePath="..\common\cabac.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\common.c"
+				RelativePath="..\common\common.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\common.h"
+				RelativePath="..\common\common.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\cpu.c"
+				RelativePath="..\common\cpu.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\cpu.h"
+				RelativePath="..\common\cpu.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\dct.c"
+				RelativePath="..\common\dct.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\dct.h"
+				RelativePath="..\common\dct.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\deblock.c"
+				RelativePath="..\common\deblock.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\frame.c"
+				RelativePath="..\common\frame.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\frame.h"
+				RelativePath="..\common\frame.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\macroblock.c"
+				RelativePath="..\common\macroblock.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\macroblock.h"
+				RelativePath="..\common\macroblock.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\mc.c"
+				RelativePath="..\common\mc.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\mc.h"
+				RelativePath="..\common\mc.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\mvpred.c"
+				RelativePath="..\common\mvpred.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\osdep.c"
+				RelativePath="..\common\osdep.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\osdep.h"
+				RelativePath="..\common\osdep.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\pixel.c"
+				RelativePath="..\common\pixel.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\pixel.h"
+				RelativePath="..\common\pixel.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\predict.c"
+				RelativePath="..\common\predict.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\predict.h"
+				RelativePath="..\common\predict.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\quant.c"
+				RelativePath="..\common\quant.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\quant.h"
+				RelativePath="..\common\quant.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\rectangle.c"
+				RelativePath="..\common\rectangle.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\rectangle.h"
+				RelativePath="..\common\rectangle.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\set.c"
+				RelativePath="..\common\set.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\set.h"
+				RelativePath="..\common\set.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\threadpool.c"
+				RelativePath="..\common\threadpool.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\threadpool.h"
+				RelativePath="..\common\threadpool.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\vlc.c"
+				RelativePath="..\common\vlc.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\win32thread.c"
+				RelativePath="..\common\win32thread.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\win32thread.h"
+				RelativePath="..\common\win32thread.h"
 				>
 			</File>
 		</Filter>
@@ -321,59 +321,59 @@
 			Name="encoder"
 			>
 			<File
-				RelativePath="..\source\encoder\analyse.c"
+				RelativePath="..\encoder\analyse.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\analyse.h"
+				RelativePath="..\encoder\analyse.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\cabac.c"
+				RelativePath="..\encoder\cabac.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\cavlc.c"
+				RelativePath="..\encoder\cavlc.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\encoder.c"
+				RelativePath="..\encoder\encoder.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\lookahead.c"
+				RelativePath="..\encoder\lookahead.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\macroblock.c"
+				RelativePath="..\encoder\macroblock.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\macroblock.h"
+				RelativePath="..\encoder\macroblock.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\me.c"
+				RelativePath="..\encoder\me.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\me.h"
+				RelativePath="..\encoder\me.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\ratecontrol.c"
+				RelativePath="..\encoder\ratecontrol.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\ratecontrol.h"
+				RelativePath="..\encoder\ratecontrol.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\set.c"
+				RelativePath="..\encoder\set.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\set.h"
+				RelativePath="..\encoder\set.h"
 				>
 			</File>
 		</Filter>
@@ -381,35 +381,35 @@
 			Name="extra"
 			>
 			<File
-				RelativePath="..\source\extras\avisynth_c.h"
+				RelativePath="..\extras\avisynth_c.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\extras\avxsynth_c.h"
+				RelativePath="..\extras\avxsynth_c.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\extras\cl.h"
+				RelativePath="..\extras\cl.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\extras\cl_platform.h"
+				RelativePath="..\extras\cl_platform.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\extras\getopt.c"
+				RelativePath="..\extras\getopt.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\extras\getopt.h"
+				RelativePath="..\extras\getopt.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\extras\inttypes.h"
+				RelativePath="..\extras\inttypes.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\extras\stdint.h"
+				RelativePath="..\extras\stdint.h"
 				>
 			</File>
 		</Filter>
@@ -417,58 +417,58 @@
 			Name="filters"
 			>
 			<File
-				RelativePath="..\source\filters\filters.c"
+				RelativePath="..\filters\filters.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\filters\filters.h"
+				RelativePath="..\filters\filters.h"
 				>
 			</File>
 			<Filter
 				Name="video"
 				>
 				<File
-					RelativePath="..\source\filters\video\cache.c"
+					RelativePath="..\filters\video\cache.c"
 					>
 				</File>
 				<File
-					RelativePath="..\source\filters\video\crop.c"
+					RelativePath="..\filters\video\crop.c"
 					>
 				</File>
 				<File
-					RelativePath="..\source\filters\video\depth.c"
+					RelativePath="..\filters\video\depth.c"
 					>
 				</File>
 				<File
-					RelativePath="..\source\filters\video\fix_vfr_pts.c"
+					RelativePath="..\filters\video\fix_vfr_pts.c"
 					>
 				</File>
 				<File
-					RelativePath="..\source\filters\video\internal.c"
+					RelativePath="..\filters\video\internal.c"
 					>
 				</File>
 				<File
-					RelativePath="..\source\filters\video\internal.h"
+					RelativePath="..\filters\video\internal.h"
 					>
 				</File>
 				<File
-					RelativePath="..\source\filters\video\resize.c"
+					RelativePath="..\filters\video\resize.c"
 					>
 				</File>
 				<File
-					RelativePath="..\source\filters\video\select_every.c"
+					RelativePath="..\filters\video\select_every.c"
 					>
 				</File>
 				<File
-					RelativePath="..\source\filters\video\source.c"
+					RelativePath="..\filters\video\source.c"
 					>
 				</File>
 				<File
-					RelativePath="..\source\filters\video\video.c"
+					RelativePath="..\filters\video\video.c"
 					>
 				</File>
 				<File
-					RelativePath="..\source\filters\video\video.h"
+					RelativePath="..\filters\video\video.h"
 					>
 				</File>
 			</Filter>
@@ -477,31 +477,31 @@
 			Name="input"
 			>
 			<File
-				RelativePath="..\source\input\avs.c"
+				RelativePath="..\input\avs.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\input\input.c"
+				RelativePath="..\input\input.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\input\input.h"
+				RelativePath="..\input\input.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\input\raw.c"
+				RelativePath="..\input\raw.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\input\thread.c"
+				RelativePath="..\input\thread.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\input\timecode.c"
+				RelativePath="..\input\timecode.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\input\y4m.c"
+				RelativePath="..\input\y4m.c"
 				>
 			</File>
 		</Filter>
@@ -509,35 +509,35 @@
 			Name="output"
 			>
 			<File
-				RelativePath="..\source\output\flv.c"
+				RelativePath="..\output\flv.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\output\flv_bytestream.c"
+				RelativePath="..\output\flv_bytestream.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\output\flv_bytestream.h"
+				RelativePath="..\output\flv_bytestream.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\output\matroska.c"
+				RelativePath="..\output\matroska.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\output\matroska_ebml.c"
+				RelativePath="..\output\matroska_ebml.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\output\matroska_ebml.h"
+				RelativePath="..\output\matroska_ebml.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\output\output.h"
+				RelativePath="..\output\output.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\output\raw.c"
+				RelativePath="..\output\raw.c"
 				>
 			</File>
 		</Filter>
@@ -550,11 +550,11 @@
 			>
 		</File>
 		<File
-			RelativePath="..\source\x264.c"
+			RelativePath="..\x264.c"
 			>
 		</File>
 		<File
-			RelativePath="..\source\x264.h"
+			RelativePath="..\x264.h"
 			>
 		</File>
 		<File
@@ -562,7 +562,7 @@
 			>
 		</File>
 		<File
-			RelativePath="..\source\x264cli.h"
+			RelativePath="..\x264cli.h"
 			>
 		</File>
 	</Files>

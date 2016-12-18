@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\source\;..\source\extras;."
+				AdditionalIncludeDirectories="..\;..\extras;."
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -106,7 +106,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="..\source\;..\extras"
+				AdditionalIncludeDirectories="..\;..\extras"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
@@ -127,7 +127,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				LinkIncremental="1"
-				ModuleDefinitionFile="..\source\x264.def"
+				ModuleDefinitionFile="..\x264.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)\$(TargetName).pdb"
 				SubSystem="1"
@@ -166,143 +166,143 @@
 			Name="common"
 			>
 			<File
-				RelativePath="..\source\common\bitstream.c"
+				RelativePath="..\common\bitstream.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\bitstream.h"
+				RelativePath="..\common\bitstream.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\cabac.c"
+				RelativePath="..\common\cabac.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\cabac.h"
+				RelativePath="..\common\cabac.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\common.c"
+				RelativePath="..\common\common.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\common.h"
+				RelativePath="..\common\common.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\cpu.c"
+				RelativePath="..\common\cpu.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\cpu.h"
+				RelativePath="..\common\cpu.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\dct.c"
+				RelativePath="..\common\dct.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\dct.h"
+				RelativePath="..\common\dct.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\deblock.c"
+				RelativePath="..\common\deblock.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\frame.c"
+				RelativePath="..\common\frame.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\frame.h"
+				RelativePath="..\common\frame.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\macroblock.c"
+				RelativePath="..\common\macroblock.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\macroblock.h"
+				RelativePath="..\common\macroblock.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\mc.c"
+				RelativePath="..\common\mc.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\mc.h"
+				RelativePath="..\common\mc.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\mvpred.c"
+				RelativePath="..\common\mvpred.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\osdep.c"
+				RelativePath="..\common\osdep.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\osdep.h"
+				RelativePath="..\common\osdep.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\pixel.c"
+				RelativePath="..\common\pixel.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\pixel.h"
+				RelativePath="..\common\pixel.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\predict.c"
+				RelativePath="..\common\predict.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\predict.h"
+				RelativePath="..\common\predict.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\quant.c"
+				RelativePath="..\common\quant.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\quant.h"
+				RelativePath="..\common\quant.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\rectangle.c"
+				RelativePath="..\common\rectangle.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\rectangle.h"
+				RelativePath="..\common\rectangle.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\set.c"
+				RelativePath="..\common\set.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\set.h"
+				RelativePath="..\common\set.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\threadpool.c"
+				RelativePath="..\common\threadpool.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\threadpool.h"
+				RelativePath="..\common\threadpool.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\vlc.c"
+				RelativePath="..\common\vlc.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\win32thread.c"
+				RelativePath="..\common\win32thread.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\common\win32thread.h"
+				RelativePath="..\common\win32thread.h"
 				>
 			</File>
 		</Filter>
@@ -310,59 +310,59 @@
 			Name="encoder"
 			>
 			<File
-				RelativePath="..\source\encoder\analyse.c"
+				RelativePath="..\encoder\analyse.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\analyse.h"
+				RelativePath="..\encoder\analyse.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\cabac.c"
+				RelativePath="..\encoder\cabac.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\cavlc.c"
+				RelativePath="..\encoder\cavlc.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\encoder.c"
+				RelativePath="..\encoder\encoder.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\lookahead.c"
+				RelativePath="..\encoder\lookahead.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\macroblock.c"
+				RelativePath="..\encoder\macroblock.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\macroblock.h"
+				RelativePath="..\encoder\macroblock.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\me.c"
+				RelativePath="..\encoder\me.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\me.h"
+				RelativePath="..\encoder\me.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\ratecontrol.c"
+				RelativePath="..\encoder\ratecontrol.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\ratecontrol.h"
+				RelativePath="..\encoder\ratecontrol.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\set.c"
+				RelativePath="..\encoder\set.c"
 				>
 			</File>
 			<File
-				RelativePath="..\source\encoder\set.h"
+				RelativePath="..\encoder\set.h"
 				>
 			</File>
 		</Filter>
