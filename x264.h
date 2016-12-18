@@ -460,6 +460,9 @@ typedef struct x264_param_t
 
     /* Muxing parameters */
     int b_aud;                  /* generate access unit delimiters */
+#if EMIT_INFO
+    int b_info;                  /* generate x264 info */
+#endif
     int b_repeat_headers;       /* put SPS/PPS before each keyframe */
     int b_annexb;               /* if set, place start codes (4 bytes) before NAL units,
                                  * otherwise place size (4 bytes) before NAL units. */

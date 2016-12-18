@@ -1,0 +1,5 @@
+version 0.148.x.S2
+* add version info in the log
+
+version 0.148.x.S1
+* add option --info to control the x264 info

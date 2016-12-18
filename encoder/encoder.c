@@ -1417,6 +1417,10 @@ x264_t *x264_encoder_open( x264_param_t *param )
     /* Create a copy of param */
     memcpy( &h->param, param, sizeof(x264_param_t) );
 
+#if DISPLAY_VERSION
+    x264_log(param,X264_LOG_INFO,"AVC encoder version %s\n",X264_VERSION);
+#endif
+
     if( param->param_free )
         param->param_free( param );
 
@@ -1987,12 +1991,18 @@ int x264_encoder_headers( x264_t *h, x264_nal_t **pp_nal, int *pi_nal )
     if( x264_nal_end( h ) )
         return -1;
 
+#if EMIT_INFO
+    if(h->param.b_info){
+#endif
     /* identify ourselves */
     x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
     if( x264_sei_version_write( h, &h->out.bs ) )
         return -1;
     if( x264_nal_end( h ) )
         return -1;
+#if EMIT_INFO
+    }
+#endif
 
     frame_size = x264_encoder_encapsulate_nals( h, 0 );
     if( frame_size < 0 )
@@ -3592,12 +3602,18 @@ int     x264_encoder_encode( x264_t *h,
         /* Avid's decoder strictly wants two SEIs for AVC-Intra so we can't insert the x264 SEI */
         if( h->param.b_repeat_headers && h->fenc->i_frame == 0 && !h->param.i_avcintra_class )
         {
+#if EMIT_INFO
+    if(h->param.b_info){
+#endif
             /* identify ourself */
             x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
             if( x264_sei_version_write( h, &h->out.bs ) )
                 return -1;
             if( x264_nal_end( h ) )
                 return -1;
+#if EMIT_INFO
+    }
+#endif
             overhead += h->out.nal[h->out.i_nal-1].i_payload + SEI_OVERHEAD;
         }
 

@@ -167,6 +167,9 @@ void x264_param_default( x264_param_t *param )
     param->b_repeat_headers = 1;
     param->b_annexb = 1;
     param->b_aud = 0;
+#if EMIT_INFO
+    param->b_info = 0;
+#endif
     param->b_vfr_input = 1;
     param->i_nal_hrd = X264_NAL_HRD_NONE;
     param->b_tff = 1;
@@ -1023,6 +1026,10 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->analyse.b_ssim = atobool(value);
     OPT("aud")
         p->b_aud = atobool(value);
+#if EMIT_INFO
+    OPT("info")
+        p->b_info = atobool(value);
+#endif
     OPT("sps-id")
         p->i_sps_id = atoi(value);
     OPT("global-header")

@@ -47,3 +47,5 @@ dataDec.txt
 log.dec
 common/oclobj.h
 x264_lookahead.clbin
+
+bin/
