@@ -1,7 +1,7 @@
 /*****************************************************************************
  * set: header writing
  *****************************************************************************
- * Copyright (C) 2003-2015 x264 project
+ * Copyright (C) 2003-2016 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -137,7 +137,7 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         sps->i_level_idc      = 11;
     }
     /* Intra profiles */
-    if( param->i_keyint_max == 1 && sps->i_profile_idc > PROFILE_HIGH )
+    if( param->i_keyint_max == 1 && sps->i_profile_idc >= PROFILE_HIGH )
         sps->b_constraint_set3 = 1;
 
     sps->vui.i_num_reorder_frames = param->i_bframe_pyramid ? 2 : param->i_bframe ? 1 : 0;
@@ -184,20 +184,7 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     sps->b_mb_adaptive_frame_field = param->b_interlaced;
     sps->b_direct8x8_inference = 1;
 
-    sps->crop.i_left   = param->crop_rect.i_left;
-    sps->crop.i_top    = param->crop_rect.i_top;
-    sps->crop.i_right  = param->crop_rect.i_right + sps->i_mb_width*16 - param->i_width;
-    sps->crop.i_bottom = (param->crop_rect.i_bottom + sps->i_mb_height*16 - param->i_height) >> !sps->b_frame_mbs_only;
-    sps->b_crop = sps->crop.i_left  || sps->crop.i_top ||
-                  sps->crop.i_right || sps->crop.i_bottom;
-
-    sps->vui.b_aspect_ratio_info_present = 0;
-    if( param->vui.i_sar_width > 0 && param->vui.i_sar_height > 0 )
-    {
-        sps->vui.b_aspect_ratio_info_present = 1;
-        sps->vui.i_sar_width = param->vui.i_sar_width;
-        sps->vui.i_sar_height= param->vui.i_sar_height;
-    }
+    x264_sps_init_reconfigurable( sps, param );
 
     sps->vui.b_overscan_info_present = param->vui.i_overscan > 0 && param->vui.i_overscan <= 2;
     if( sps->vui.b_overscan_info_present )
@@ -209,9 +196,9 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
                            ( csp >= X264_CSP_BGR ? 1 : 0 ) );
     sps->vui.b_color_description_present = 0;
 
-    sps->vui.i_colorprim = ( param->vui.i_colorprim >= 0 && param->vui.i_colorprim <=  9 ? param->vui.i_colorprim : 2 );
-    sps->vui.i_transfer  = ( param->vui.i_transfer  >= 0 && param->vui.i_transfer  <= 15 ? param->vui.i_transfer  : 2 );
-    sps->vui.i_colmatrix = ( param->vui.i_colmatrix >= 0 && param->vui.i_colmatrix <= 10 ? param->vui.i_colmatrix :
+    sps->vui.i_colorprim = ( param->vui.i_colorprim >= 0 && param->vui.i_colorprim <= 12 ? param->vui.i_colorprim : 2 );
+    sps->vui.i_transfer  = ( param->vui.i_transfer  >= 0 && param->vui.i_transfer  <= 17 ? param->vui.i_transfer  : 2 );
+    sps->vui.i_colmatrix = ( param->vui.i_colmatrix >= 0 && param->vui.i_colmatrix <= 11 ? param->vui.i_colmatrix :
                            ( csp >= X264_CSP_BGR ? 0 : 2 ) );
     if( sps->vui.i_colorprim != 2 ||
         sps->vui.i_transfer  != 2 ||
@@ -251,7 +238,7 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
 
     // NOTE: HRD related parts of the SPS are initialised in x264_ratecontrol_init_reconfigurable
 
-    sps->vui.b_bitstream_restriction = param->i_keyint_max > 1;
+    sps->vui.b_bitstream_restriction = !(sps->b_constraint_set3 && sps->i_profile_idc >= PROFILE_HIGH);
     if( sps->vui.b_bitstream_restriction )
     {
         sps->vui.b_motion_vectors_over_pic_boundaries = 1;
@@ -259,6 +246,24 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         sps->vui.i_max_bits_per_mb_denom = 0;
         sps->vui.i_log2_max_mv_length_horizontal =
         sps->vui.i_log2_max_mv_length_vertical = (int)log2f( X264_MAX( 1, param->analyse.i_mv_range*4-1 ) ) + 1;
+    }
+}
+
+void x264_sps_init_reconfigurable( x264_sps_t *sps, x264_param_t *param )
+{
+    sps->crop.i_left   = param->crop_rect.i_left;
+    sps->crop.i_top    = param->crop_rect.i_top;
+    sps->crop.i_right  = param->crop_rect.i_right + sps->i_mb_width*16 - param->i_width;
+    sps->crop.i_bottom = (param->crop_rect.i_bottom + sps->i_mb_height*16 - param->i_height) >> !sps->b_frame_mbs_only;
+    sps->b_crop = sps->crop.i_left  || sps->crop.i_top ||
+                  sps->crop.i_right || sps->crop.i_bottom;
+
+    sps->vui.b_aspect_ratio_info_present = 0;
+    if( param->vui.i_sar_width > 0 && param->vui.i_sar_height > 0 )
+    {
+        sps->vui.b_aspect_ratio_info_present = 1;
+        sps->vui.i_sar_width = param->vui.i_sar_width;
+        sps->vui.i_sar_height= param->vui.i_sar_height;
     }
 }
 
@@ -517,19 +522,14 @@ void x264_pps_write( bs_t *s, x264_sps_t *sps, x264_pps_t *pps )
             bs_write1( s, 0 ); // Cr = Cb
             if( pps->b_transform_8x8_mode )
             {
+                scaling_list_write( s, pps, CQM_8IY+4 );
+                scaling_list_write( s, pps, CQM_8PY+4 );
                 if( sps->i_chroma_format_idc == CHROMA_444 )
                 {
-                    scaling_list_write( s, pps, CQM_8IY+4 );
                     scaling_list_write( s, pps, CQM_8IC+4 );
-                    bs_write1( s, 0 ); // Cr = Cb
-                    scaling_list_write( s, pps, CQM_8PY+4 );
                     scaling_list_write( s, pps, CQM_8PC+4 );
                     bs_write1( s, 0 ); // Cr = Cb
-                }
-                else
-                {
-                    scaling_list_write( s, pps, CQM_8IY+4 );
-                    scaling_list_write( s, pps, CQM_8PY+4 );
+                    bs_write1( s, 0 ); // Cr = Cb
                 }
             }
         }
@@ -578,7 +578,7 @@ int x264_sei_version_write( x264_t *h, bs_t *s )
 
     memcpy( payload, uuid, 16 );
     sprintf( payload+16, "x264 - core %d%s - H.264/MPEG-4 AVC codec - "
-             "Copy%s 2003-2015 - http://www.videolan.org/x264.html - options: %s",
+             "Copy%s 2003-2016 - http://www.videolan.org/x264.html - options: %s",
              X264_BUILD, X264_VERSION, HAVE_GPL?"left":"right", opts );
     length = strlen(payload)+1;
 
@@ -671,7 +671,7 @@ void x264_sei_frame_packing_write( x264_t *h, bs_t *s )
     bs_write1( &q, h->param.i_frame_packing == 5 && !(h->fenc->i_frame&1) ); // current_frame_is_frame0_flag
     bs_write1( &q, 0 );                           // frame0_self_contained_flag
     bs_write1( &q, 0 );                           // frame1_self_contained_flag
-    if ( quincunx_sampling_flag == 0 && h->param.i_frame_packing != 5 )
+    if( quincunx_sampling_flag == 0 && h->param.i_frame_packing != 5 )
     {
         bs_write( &q, 4, 0 );                     // frame0_grid_position_x
         bs_write( &q, 4, 0 );                     // frame0_grid_position_y

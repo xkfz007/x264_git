@@ -1,7 +1,7 @@
 /*****************************************************************************
  * common.h: misc common functions
  *****************************************************************************
- * Copyright (C) 2003-2015 x264 project
+ * Copyright (C) 2003-2016 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -36,7 +36,7 @@
 #define X264_MAX3(a,b,c) X264_MAX((a),X264_MAX((b),(c)))
 #define X264_MIN4(a,b,c,d) X264_MIN((a),X264_MIN3((b),(c),(d)))
 #define X264_MAX4(a,b,c,d) X264_MAX((a),X264_MAX3((b),(c),(d)))
-#define XCHG(type,a,b) do{ type t = a; a = b; b = t; } while(0)
+#define XCHG(type,a,b) do { type t = a; a = b; b = t; } while( 0 )
 #define IS_DISPOSABLE(type) ( type == X264_TYPE_B )
 #define FIX8(f) ((int)(f*(1<<8)+.5))
 #define ALIGN(x,a) (((x)+((a)-1))&~((a)-1))
@@ -70,14 +70,14 @@ do {\
     var = (void*)prealloc_size;\
     preallocs[prealloc_idx++] = (uint8_t**)&var;\
     prealloc_size += ALIGN(size, NATIVE_ALIGN);\
-} while(0)
+} while( 0 )
 
 #define PREALLOC_END( ptr )\
 do {\
     CHECKED_MALLOC( ptr, prealloc_size );\
     while( prealloc_idx-- )\
         *preallocs[prealloc_idx] += (intptr_t)ptr;\
-} while(0)
+} while( 0 )
 
 #define ARRAY_SIZE(array)  (sizeof(array)/sizeof(array[0]))
 
@@ -895,9 +895,6 @@ struct x264_t
     /* stats */
     struct
     {
-        /* Current frame stats */
-        x264_frame_stat_t frame;
-
         /* Cumulated stats */
 
         /* per slice info */
@@ -927,6 +924,8 @@ struct x264_t
         /* num p-frames weighted */
         int     i_wpred[2];
 
+        /* Current frame stats */
+        x264_frame_stat_t frame;
     } stat;
 
     /* 0 = luma 4x4, 1 = luma 8x8, 2 = chroma 4x4, 3 = chroma 8x8 */
@@ -973,6 +972,12 @@ struct x264_t
     x264_opencl_t opencl;
 #endif
 };
+
+typedef struct
+{
+    int sad;
+    int16_t mv[2];
+} mvsad_t;
 
 // included at the end because it needs x264_t
 #include "macroblock.h"

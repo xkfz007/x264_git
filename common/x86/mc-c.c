@@ -1,7 +1,7 @@
 /*****************************************************************************
  * mc-c.c: x86 motion compensation
  *****************************************************************************
- * Copyright (C) 2003-2015 x264 project
+ * Copyright (C) 2003-2016 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -24,10 +24,6 @@
  * This program is also available under a commercial proprietary license.
  * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 
 #include "common/common.h"
 #include "mc.h"
@@ -92,7 +88,8 @@ void x264_prefetch_fenc_422_mmx2( pixel *, intptr_t, pixel *, intptr_t, int );
 void x264_prefetch_ref_mmx2( pixel *, intptr_t, int );
 void x264_plane_copy_core_sse( pixel *, intptr_t, pixel *, intptr_t, int w, int h );
 void x264_plane_copy_core_avx( pixel *, intptr_t, pixel *, intptr_t, int w, int h );
-void x264_plane_copy_c( pixel *, intptr_t, pixel *, intptr_t, int w, int h );
+void x264_plane_copy_swap_core_ssse3( pixel *, intptr_t, pixel *, intptr_t, int w, int h );
+void x264_plane_copy_swap_core_avx2 ( pixel *, intptr_t, pixel *, intptr_t, int w, int h );
 void x264_plane_copy_interleave_core_mmx2( pixel *dst,  intptr_t i_dst,
                                            pixel *srcu, intptr_t i_srcu,
                                            pixel *srcv, intptr_t i_srcv, int w, int h );
@@ -102,9 +99,6 @@ void x264_plane_copy_interleave_core_sse2( pixel *dst,  intptr_t i_dst,
 void x264_plane_copy_interleave_core_avx( pixel *dst,  intptr_t i_dst,
                                           pixel *srcu, intptr_t i_srcu,
                                           pixel *srcv, intptr_t i_srcv, int w, int h );
-void x264_plane_copy_interleave_c( pixel *dst,  intptr_t i_dst,
-                                   pixel *srcu, intptr_t i_srcu,
-                                   pixel *srcv, intptr_t i_srcv, int w, int h );
 void x264_plane_copy_deinterleave_mmx( pixel *dstu, intptr_t i_dstu,
                                        pixel *dstv, intptr_t i_dstv,
                                        pixel *src,  intptr_t i_src, int w, int h );
@@ -170,6 +164,10 @@ void x264_mbtree_propagate_cost_fma4( int16_t *dst, uint16_t *propagate_in, uint
                                       uint16_t *inter_costs, uint16_t *inv_qscales, float *fps_factor, int len );
 void x264_mbtree_propagate_cost_avx2( int16_t *dst, uint16_t *propagate_in, uint16_t *intra_costs,
                                       uint16_t *inter_costs, uint16_t *inv_qscales, float *fps_factor, int len );
+void x264_mbtree_fix8_pack_ssse3( uint16_t *dst, float *src, int count );
+void x264_mbtree_fix8_pack_avx2 ( uint16_t *dst, float *src, int count );
+void x264_mbtree_fix8_unpack_ssse3( float *dst, uint16_t *src, int count );
+void x264_mbtree_fix8_unpack_avx2 ( float *dst, uint16_t *src, int count );
 
 #define MC_CHROMA(cpu)\
 void x264_mc_chroma_##cpu( pixel *dstu, pixel *dstv, intptr_t i_dst, pixel *src, intptr_t i_src,\
@@ -490,52 +488,11 @@ HPEL(32, avx2, avx2, avx2, avx2)
 #endif
 #endif // HIGH_BIT_DEPTH
 
-#define PLANE_COPY(align, cpu)\
-static void x264_plane_copy_##cpu( pixel *dst, intptr_t i_dst, pixel *src, intptr_t i_src, int w, int h )\
-{\
-    int c_w = (align) / sizeof(pixel) - 1;\
-    if( w < 256 ) /* tiny resolutions don't want non-temporal hints. dunno the exact threshold. */\
-        x264_plane_copy_c( dst, i_dst, src, i_src, w, h );\
-    else if( !(w&c_w) )\
-        x264_plane_copy_core_##cpu( dst, i_dst, src, i_src, w, h );\
-    else\
-    {\
-        if( --h > 0 )\
-        {\
-            if( i_src > 0 )\
-            {\
-                x264_plane_copy_core_##cpu( dst, i_dst, src, i_src, (w+c_w)&~c_w, h );\
-                dst += i_dst * h;\
-                src += i_src * h;\
-            }\
-            else\
-                x264_plane_copy_core_##cpu( dst+i_dst, i_dst, src+i_src, i_src, (w+c_w)&~c_w, h );\
-        }\
-        /* use plain memcpy on the last line (in memory order) to avoid overreading src. */\
-        memcpy( dst, src, w*sizeof(pixel) );\
-    }\
-}
-
 PLANE_COPY(16, sse)
 PLANE_COPY(32, avx)
 
-#define PLANE_INTERLEAVE(cpu) \
-static void x264_plane_copy_interleave_##cpu( pixel *dst,  intptr_t i_dst,\
-                                              pixel *srcu, intptr_t i_srcu,\
-                                              pixel *srcv, intptr_t i_srcv, int w, int h )\
-{\
-    if( !(w&15) ) {\
-        x264_plane_copy_interleave_core_##cpu( dst, i_dst, srcu, i_srcu, srcv, i_srcv, w, h );\
-    } else if( w < 16 || (i_srcu ^ i_srcv) ) {\
-        x264_plane_copy_interleave_c( dst, i_dst, srcu, i_srcu, srcv, i_srcv, w, h );\
-    } else if( i_srcu > 0 ) {\
-        x264_plane_copy_interleave_core_##cpu( dst, i_dst, srcu, i_srcu, srcv, i_srcv, (w+15)&~15, h-1 );\
-        x264_plane_copy_interleave_c( dst+i_dst*(h-1), 0, srcu+i_srcu*(h-1), 0, srcv+i_srcv*(h-1), 0, w, 1 );\
-    } else {\
-        x264_plane_copy_interleave_c( dst, 0, srcu, 0, srcv, 0, w, 1 );\
-        x264_plane_copy_interleave_core_##cpu( dst+i_dst, i_dst, srcu+i_srcu, i_srcu, srcv+i_srcv, i_srcv, (w+15)&~15, h-1 );\
-    }\
-}
+PLANE_COPY_SWAP(16, ssse3)
+PLANE_COPY_SWAP(32, avx2)
 
 PLANE_INTERLEAVE(mmx2)
 PLANE_INTERLEAVE(sse2)
@@ -544,7 +501,8 @@ PLANE_INTERLEAVE(avx)
 #endif
 
 #if HAVE_X86_INLINE_ASM
-#define CLIP_ADD(s,x)\
+#undef MC_CLIP_ADD
+#define MC_CLIP_ADD(s,x)\
 do\
 {\
     int temp;\
@@ -556,9 +514,10 @@ do\
         :"m"(x)\
     );\
     s = temp;\
-} while(0)
+} while( 0 )
 
-#define CLIP_ADD2(s,x)\
+#undef MC_CLIP_ADD2
+#define MC_CLIP_ADD2(s,x)\
 do\
 {\
     asm("movd       %0, %%xmm0     \n"\
@@ -568,87 +527,12 @@ do\
         :"+m"(M32(s))\
         :"m"(M32(x))\
     );\
-} while(0)
-#else
-#define CLIP_ADD(s,x) (s) = X264_MIN((s)+(x),(1<<15)-1)
-#define CLIP_ADD2(s,x)\
-do\
-{\
-    CLIP_ADD((s)[0], (x)[0]);\
-    CLIP_ADD((s)[1], (x)[1]);\
-} while(0)
+} while( 0 )
 #endif
-
-#define PROPAGATE_LIST(cpu)\
-void x264_mbtree_propagate_list_internal_##cpu( int16_t (*mvs)[2], int16_t *propagate_amount,\
-                                                uint16_t *lowres_costs, int16_t *output,\
-                                                int bipred_weight, int mb_y, int len );\
-\
-static void x264_mbtree_propagate_list_##cpu( x264_t *h, uint16_t *ref_costs, int16_t (*mvs)[2],\
-                                              int16_t *propagate_amount, uint16_t *lowres_costs,\
-                                              int bipred_weight, int mb_y, int len, int list )\
-{\
-    int16_t *current = h->scratch_buffer2;\
-\
-    x264_mbtree_propagate_list_internal_##cpu( mvs, propagate_amount, lowres_costs,\
-                                               current, bipred_weight, mb_y, len );\
-\
-    unsigned stride = h->mb.i_mb_stride;\
-    unsigned width = h->mb.i_mb_width;\
-    unsigned height = h->mb.i_mb_height;\
-\
-    for( unsigned i = 0; i < len; current += 32 )\
-    {\
-        int end = X264_MIN( i+8, len );\
-        for( ; i < end; i++, current += 2 )\
-        {\
-            if( !(lowres_costs[i] & (1 << (list+LOWRES_COST_SHIFT))) )\
-                continue;\
-\
-            unsigned mbx = current[0];\
-            unsigned mby = current[1];\
-            unsigned idx0 = mbx + mby * stride;\
-            unsigned idx2 = idx0 + stride;\
-\
-            /* Shortcut for the simple/common case of zero MV */\
-            if( !M32( mvs[i] ) )\
-            {\
-                CLIP_ADD( ref_costs[idx0], current[16] );\
-                continue;\
-            }\
-\
-            if( mbx < width-1 && mby < height-1 )\
-            {\
-                CLIP_ADD2( ref_costs+idx0, current+16 );\
-                CLIP_ADD2( ref_costs+idx2, current+32 );\
-            }\
-            else\
-            {\
-                /* Note: this takes advantage of unsigned representation to\
-                 * catch negative mbx/mby. */\
-                if( mby < height )\
-                {\
-                    if( mbx < width )\
-                        CLIP_ADD( ref_costs[idx0+0], current[16] );\
-                    if( mbx+1 < width )\
-                        CLIP_ADD( ref_costs[idx0+1], current[17] );\
-                }\
-                if( mby+1 < height )\
-                {\
-                    if( mbx < width )\
-                        CLIP_ADD( ref_costs[idx2+0], current[32] );\
-                    if( mbx+1 < width )\
-                        CLIP_ADD( ref_costs[idx2+1], current[33] );\
-                }\
-            }\
-        }\
-    }\
-}
 
 PROPAGATE_LIST(ssse3)
 PROPAGATE_LIST(avx)
-#undef CLIP_ADD
-#undef CLIP_ADD2
+PROPAGATE_LIST(avx2)
 
 void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 {
@@ -761,8 +645,11 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
         return;
 
     pf->frame_init_lowres_core = x264_frame_init_lowres_core_ssse3;
+    pf->plane_copy_swap = x264_plane_copy_swap_ssse3;
     pf->plane_copy_deinterleave_v210 = x264_plane_copy_deinterleave_v210_ssse3;
     pf->mbtree_propagate_list = x264_mbtree_propagate_list_ssse3;
+    pf->mbtree_fix8_pack      = x264_mbtree_fix8_pack_ssse3;
+    pf->mbtree_fix8_unpack    = x264_mbtree_fix8_unpack_ssse3;
 
     if( !(cpu&(X264_CPU_SLOW_SHUFFLE|X264_CPU_SLOW_ATOM|X264_CPU_SLOW_PALIGNR)) )
         pf->integral_init4v = x264_integral_init4v_ssse3;
@@ -865,8 +752,11 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->avg[PIXEL_4x8]   = x264_pixel_avg_4x8_ssse3;
     pf->avg[PIXEL_4x4]   = x264_pixel_avg_4x4_ssse3;
     pf->avg[PIXEL_4x2]   = x264_pixel_avg_4x2_ssse3;
+    pf->plane_copy_swap = x264_plane_copy_swap_ssse3;
     pf->plane_copy_deinterleave_rgb = x264_plane_copy_deinterleave_rgb_ssse3;
     pf->mbtree_propagate_list = x264_mbtree_propagate_list_ssse3;
+    pf->mbtree_fix8_pack      = x264_mbtree_fix8_pack_ssse3;
+    pf->mbtree_fix8_unpack    = x264_mbtree_fix8_unpack_ssse3;
 
     if( !(cpu&X264_CPU_SLOW_PSHUFB) )
     {
@@ -951,6 +841,10 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 
     if( !(cpu&X264_CPU_AVX2) )
         return;
+    pf->plane_copy_swap = x264_plane_copy_swap_avx2;
     pf->get_ref = get_ref_avx2;
     pf->mbtree_propagate_cost = x264_mbtree_propagate_cost_avx2;
+    pf->mbtree_propagate_list = x264_mbtree_propagate_list_avx2;
+    pf->mbtree_fix8_pack      = x264_mbtree_fix8_pack_avx2;
+    pf->mbtree_fix8_unpack    = x264_mbtree_fix8_unpack_avx2;
 }

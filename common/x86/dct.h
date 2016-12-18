@@ -1,7 +1,7 @@
 /*****************************************************************************
  * dct.h: x86 transform and zigzag
  *****************************************************************************
- * Copyright (C) 2003-2015 x264 project
+ * Copyright (C) 2003-2016 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -77,6 +77,10 @@ void x264_idct4x4dc_mmx      ( int16_t d[16] );
 void x264_idct4x4dc_sse2     ( int32_t d[16] );
 void x264_idct4x4dc_avx      ( int32_t d[16] );
 
+void x264_dct2x4dc_mmx2( dctcoef dct[8], dctcoef dct4x4[8][16] );
+void x264_dct2x4dc_sse2( dctcoef dct[8], dctcoef dct4x4[8][16] );
+void x264_dct2x4dc_avx ( dctcoef dct[8], dctcoef dct4x4[8][16] );
+
 void x264_sub8x8_dct8_mmx    ( int16_t dct   [64], uint8_t *pix1, uint8_t *pix2 );
 void x264_sub16x16_dct8_mmx  ( int16_t dct[4][64], uint8_t *pix1, uint8_t *pix2 );
 void x264_sub8x8_dct8_sse2   ( dctcoef dct   [64], pixel *pix1, pixel *pix2 );
@@ -108,7 +112,7 @@ void x264_zigzag_scan_4x4_frame_ssse3( int16_t level[16], int16_t dct[16] );
 void x264_zigzag_scan_4x4_frame_sse2 ( int32_t level[16], int32_t dct[16] );
 void x264_zigzag_scan_4x4_frame_mmx  ( int16_t level[16], int16_t dct[16] );
 void x264_zigzag_scan_4x4_field_sse2 ( int32_t level[16], int32_t dct[16] );
-void x264_zigzag_scan_4x4_field_mmx2 ( int16_t level[16], int16_t dct[16] );
+void x264_zigzag_scan_4x4_field_sse  ( int16_t level[16], int16_t dct[16] );
 void x264_zigzag_scan_8x8_field_xop  ( int16_t level[64], int16_t dct[64] );
 void x264_zigzag_scan_8x8_field_avx  ( int32_t level[64], int32_t dct[64] );
 void x264_zigzag_scan_8x8_field_sse4 ( int32_t level[64], int32_t dct[64] );

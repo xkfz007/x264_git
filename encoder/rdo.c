@@ -1,7 +1,7 @@
 /*****************************************************************************
  * rdo.c: rate-distortion optimization
  *****************************************************************************
- * Copyright (C) 2005-2015 x264 project
+ * Copyright (C) 2005-2016 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Fiona Glaser <fiona@x264.com>
@@ -180,7 +180,7 @@ static int x264_rd_cost_mb( x264_t *h, int i_lambda2 )
     else
     {
         x264_macroblock_size_cavlc( h );
-        i_bits = ( h->out.bs.i_bits_encoded * i_lambda2 + 128 ) >> 8;
+        i_bits = ( (uint64_t)h->out.bs.i_bits_encoded * i_lambda2 + 128 ) >> 8;
     }
 
     h->mb.b_transform_8x8 = b_transform_bak;
@@ -261,7 +261,7 @@ uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i4, int i_pixel )
         i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
     }
     else
-        i_bits = x264_partition_size_cavlc( h, i8, i_pixel ) * i_lambda2;
+        i_bits = (uint64_t)x264_partition_size_cavlc( h, i8, i_pixel ) * i_lambda2;
 
     return (i_ssd<<8) + i_bits;
 }
@@ -297,7 +297,7 @@ static uint64_t x264_rd_cost_i8x8( x264_t *h, int i_lambda2, int i8, int i_mode,
         i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
     }
     else
-        i_bits = x264_partition_i8x8_size_cavlc( h, i8, i_mode ) * i_lambda2;
+        i_bits = (uint64_t)x264_partition_i8x8_size_cavlc( h, i8, i_mode ) * i_lambda2;
 
     return (i_ssd<<8) + i_bits;
 }
@@ -331,7 +331,7 @@ static uint64_t x264_rd_cost_i4x4( x264_t *h, int i_lambda2, int i4, int i_mode 
         i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
     }
     else
-        i_bits = x264_partition_i4x4_size_cavlc( h, i4, i_mode ) * i_lambda2;
+        i_bits = (uint64_t)x264_partition_i4x4_size_cavlc( h, i4, i_mode ) * i_lambda2;
 
     return (i_ssd<<8) + i_bits;
 }
@@ -357,7 +357,7 @@ static uint64_t x264_rd_cost_chroma( x264_t *h, int i_lambda2, int i_mode, int b
         i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
     }
     else
-        i_bits = x264_chroma_size_cavlc( h ) * i_lambda2;
+        i_bits = (uint64_t)x264_chroma_size_cavlc( h ) * i_lambda2;
 
     return (i_ssd<<8) + i_bits;
 }
@@ -863,7 +863,7 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
         return 0;
     }
 
-    if(0) // accessible only by goto, not fallthrough
+    if( 0 ) // accessible only by goto, not fallthrough
     {
         // node_ctx 1..7 (ctx0 ruled out because we never try both level0 and level2+ on the same coef)
         TRELLIS_LOOP(1);

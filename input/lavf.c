@@ -1,7 +1,7 @@
 /*****************************************************************************
  * lavf.c: libavformat input
  *****************************************************************************
- * Copyright (C) 2009-2015 x264 project
+ * Copyright (C) 2009-2016 x264 project
  *
  * Authors: Mike Gurlitz <mike.gurlitz@gmail.com>
  *          Steven Walters <kemuri9@gmail.com>
@@ -65,7 +65,7 @@ static int read_frame_internal( cli_pic_t *p_pic, lavf_hnd_t *h, int i_frame, vi
             XCHG( cli_image_t, p_pic->img, h->first_pic->img );
             p_pic->pts = h->first_pic->pts;
         }
-        lavf_input.picture_clean( h->first_pic );
+        lavf_input.picture_clean( h->first_pic, h );
         free( h->first_pic );
         h->first_pic = NULL;
         if( !i_frame )
@@ -168,15 +168,15 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     if( opt->format )
         FAIL_IF_ERROR( !(format = av_find_input_format( opt->format )), "unknown file format: %s\n", opt->format );
 
-    FAIL_IF_ERROR( avformat_open_input( &h->lavf, psz_filename, format, &options ), "could not open input file\n" )
+    FAIL_IF_ERROR( avformat_open_input( &h->lavf, psz_filename, format, &options ), "could not open input file\n" );
     if( options )
         av_dict_free( &options );
-    FAIL_IF_ERROR( avformat_find_stream_info( h->lavf, NULL ) < 0, "could not find input stream info\n" )
+    FAIL_IF_ERROR( avformat_find_stream_info( h->lavf, NULL ) < 0, "could not find input stream info\n" );
 
     int i = 0;
     while( i < h->lavf->nb_streams && h->lavf->streams[i]->codec->codec_type != AVMEDIA_TYPE_VIDEO )
         i++;
-    FAIL_IF_ERROR( i == h->lavf->nb_streams, "could not find video stream\n" )
+    FAIL_IF_ERROR( i == h->lavf->nb_streams, "could not find video stream\n" );
     h->stream_id       = i;
     h->next_frame      = 0;
     AVCodecContext *c  = h->lavf->streams[i]->codec;
@@ -188,13 +188,13 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     info->thread_safe  = 0;
     h->vfr_input       = info->vfr;
     FAIL_IF_ERROR( avcodec_open2( c, avcodec_find_decoder( c->codec_id ), NULL ),
-                   "could not find decoder for video stream\n" )
+                   "could not find decoder for video stream\n" );
 
     /* prefetch the first frame and set/confirm flags */
     h->first_pic = malloc( sizeof(cli_pic_t) );
-    FAIL_IF_ERROR( !h->first_pic || lavf_input.picture_alloc( h->first_pic, X264_CSP_OTHER, info->width, info->height ),
-                   "malloc failed\n" )
-    else if( read_frame_internal( h->first_pic, h, 0, info ) )
+    FAIL_IF_ERROR( !h->first_pic || lavf_input.picture_alloc( h->first_pic, h, X264_CSP_OTHER, info->width, info->height ),
+                   "malloc failed\n" );
+    if( read_frame_internal( h->first_pic, h, 0, info ) )
         return -1;
 
     info->width      = c->width;
@@ -215,7 +215,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     return 0;
 }
 
-static int picture_alloc( cli_pic_t *pic, int csp, int width, int height )
+static int picture_alloc( cli_pic_t *pic, hnd_t handle, int csp, int width, int height )
 {
     if( x264_cli_pic_alloc( pic, X264_CSP_NONE, width, height ) )
         return -1;
@@ -229,7 +229,7 @@ static int read_frame( cli_pic_t *pic, hnd_t handle, int i_frame )
     return read_frame_internal( pic, handle, i_frame, NULL );
 }
 
-static void picture_clean( cli_pic_t *pic )
+static void picture_clean( cli_pic_t *pic, hnd_t handle )
 {
     memset( pic, 0, sizeof(cli_pic_t) );
 }

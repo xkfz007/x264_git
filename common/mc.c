@@ -1,7 +1,7 @@
 /*****************************************************************************
  * mc.c: motion compensation
  *****************************************************************************
- * Copyright (C) 2003-2015 x264 project
+ * Copyright (C) 2003-2016 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -37,6 +37,9 @@
 #endif
 #if ARCH_AARCH64
 #include "aarch64/mc.h"
+#endif
+#if ARCH_MIPS
+#include "mips/mc.h"
 #endif
 
 
@@ -299,6 +302,17 @@ void x264_plane_copy_c( pixel *dst, intptr_t i_dst,
     }
 }
 
+void x264_plane_copy_swap_c( pixel *dst, intptr_t i_dst,
+                             pixel *src, intptr_t i_src, int w, int h )
+{
+    for( int y=0; y<h; y++, dst+=i_dst, src+=i_src )
+        for( int x=0; x<2*w; x+=2 )
+        {
+            dst[x]   = src[x+1];
+            dst[x+1] = src[x];
+        }
+}
+
 void x264_plane_copy_interleave_c( pixel *dst,  intptr_t i_dst,
                                    pixel *srcu, intptr_t i_srcu,
                                    pixel *srcv, intptr_t i_srcv, int w, int h )
@@ -512,7 +526,6 @@ static void mbtree_propagate_list( x264_t *h, uint16_t *ref_costs, int16_t (*mvs
 
     for( unsigned i = 0; i < len; i++ )
     {
-#define CLIP_ADD(s,x) (s) = X264_MIN((s)+(x),(1<<15)-1)
         int lists_used = lowres_costs[i]>>LOWRES_COST_SHIFT;
 
         if( !(lists_used & (1 << list)) )
@@ -526,7 +539,7 @@ static void mbtree_propagate_list( x264_t *h, uint16_t *ref_costs, int16_t (*mvs
         /* Early termination for simple case of mv0. */
         if( !M32( mvs[i] ) )
         {
-            CLIP_ADD( ref_costs[mb_y*stride + i], listamount );
+            MC_CLIP_ADD( ref_costs[mb_y*stride + i], listamount );
             continue;
         }
 
@@ -549,10 +562,10 @@ static void mbtree_propagate_list( x264_t *h, uint16_t *ref_costs, int16_t (*mvs
 
         if( mbx < width-1 && mby < height-1 )
         {
-            CLIP_ADD( ref_costs[idx0+0], idx0weight );
-            CLIP_ADD( ref_costs[idx0+1], idx1weight );
-            CLIP_ADD( ref_costs[idx2+0], idx2weight );
-            CLIP_ADD( ref_costs[idx2+1], idx3weight );
+            MC_CLIP_ADD( ref_costs[idx0+0], idx0weight );
+            MC_CLIP_ADD( ref_costs[idx0+1], idx1weight );
+            MC_CLIP_ADD( ref_costs[idx2+0], idx2weight );
+            MC_CLIP_ADD( ref_costs[idx2+1], idx3weight );
         }
         else
         {
@@ -561,20 +574,32 @@ static void mbtree_propagate_list( x264_t *h, uint16_t *ref_costs, int16_t (*mvs
             if( mby < height )
             {
                 if( mbx < width )
-                    CLIP_ADD( ref_costs[idx0+0], idx0weight );
+                    MC_CLIP_ADD( ref_costs[idx0+0], idx0weight );
                 if( mbx+1 < width )
-                    CLIP_ADD( ref_costs[idx0+1], idx1weight );
+                    MC_CLIP_ADD( ref_costs[idx0+1], idx1weight );
             }
             if( mby+1 < height )
             {
                 if( mbx < width )
-                    CLIP_ADD( ref_costs[idx2+0], idx2weight );
+                    MC_CLIP_ADD( ref_costs[idx2+0], idx2weight );
                 if( mbx+1 < width )
-                    CLIP_ADD( ref_costs[idx2+1], idx3weight );
+                    MC_CLIP_ADD( ref_costs[idx2+1], idx3weight );
             }
         }
     }
-#undef CLIP_ADD
+}
+
+/* Conversion between float and Q8.8 fixed point (big-endian) for storage */
+static void mbtree_fix8_pack( uint16_t *dst, float *src, int count )
+{
+    for( int i = 0; i < count; i++ )
+        dst[i] = endian_fix16( (int16_t)(src[i] * 256.0f) );
+}
+
+static void mbtree_fix8_unpack( float *dst, uint16_t *src, int count )
+{
+    for( int i = 0; i < count; i++ )
+        dst[i] = (int16_t)endian_fix16( src[i] ) * (1.0f/256.0f);
 }
 
 void x264_mc_init( int cpu, x264_mc_functions_t *pf, int cpu_independent )
@@ -612,6 +637,7 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf, int cpu_independent )
     pf->load_deinterleave_chroma_fdec = load_deinterleave_chroma_fdec;
 
     pf->plane_copy = x264_plane_copy_c;
+    pf->plane_copy_swap = x264_plane_copy_swap_c;
     pf->plane_copy_interleave = x264_plane_copy_interleave_c;
     pf->plane_copy_deinterleave = x264_plane_copy_deinterleave_c;
     pf->plane_copy_deinterleave_rgb = x264_plane_copy_deinterleave_rgb_c;
@@ -633,6 +659,8 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf, int cpu_independent )
 
     pf->mbtree_propagate_cost = mbtree_propagate_cost;
     pf->mbtree_propagate_list = mbtree_propagate_list;
+    pf->mbtree_fix8_pack      = mbtree_fix8_pack;
+    pf->mbtree_fix8_unpack    = mbtree_fix8_unpack;
 
 #if HAVE_MMX
     x264_mc_init_mmx( cpu, pf );
@@ -646,6 +674,10 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf, int cpu_independent )
 #endif
 #if ARCH_AARCH64
     x264_mc_init_aarch64( cpu, pf );
+#endif
+#if HAVE_MSA
+    if( cpu&X264_CPU_MSA )
+        x264_mc_init_mips( cpu, pf );
 #endif
 
     if( cpu_independent )

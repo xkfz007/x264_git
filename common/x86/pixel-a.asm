@@ -1,7 +1,7 @@
 ;*****************************************************************************
 ;* pixel.asm: x86 pixel metrics
 ;*****************************************************************************
-;* Copyright (C) 2003-2015 x264 project
+;* Copyright (C) 2003-2016 x264 project
 ;*
 ;* Authors: Loren Merritt <lorenm@u.washington.edu>
 ;*          Holger Lubitz <holger@lubitz.org>
@@ -43,6 +43,9 @@ mask_ff:   times 16 db 0xff
 mask_ac4:  times 2 dw 0, -1, -1, -1, 0, -1, -1, -1
 mask_ac4b: times 2 dw 0, -1, 0, -1, -1, -1, -1, -1
 mask_ac8:  times 2 dw 0, -1, -1, -1, -1, -1, -1, -1
+%if HIGH_BIT_DEPTH
+ssd_nv12_shuf: db 0, 1, 4, 5, 2, 3, 6, 7, 8, 9, 12, 13, 10, 11, 14, 15
+%endif
 %if BIT_DEPTH == 10
 ssim_c1:   times 4 dd 6697.7856    ; .01*.01*1023*1023*64
 ssim_c2:   times 4 dd 3797644.4352 ; .03*.03*1023*1023*64*63
@@ -531,8 +534,8 @@ SSD 16,  8
 ;
 ;   2 * mmsize/32 * (2^32 - 1) / (2^BIT_DEPTH - 1)^2
 ;
-; For 10-bit MMX this means width >= 16416 and for XMM >= 32832. At sane
-; distortion levels it will take much more than that though.
+; For 10-bit XMM this means width >= 32832. At sane distortion levels
+; it will take much more than that though.
 ;-----------------------------------------------------------------------------
 %if HIGH_BIT_DEPTH
 %macro SSD_NV12 0
@@ -541,13 +544,14 @@ cglobal pixel_ssd_nv12_core, 6,7,7
     FIX_STRIDES r1, r3
     add         r0, r4
     add         r2, r4
-    xor         r6, r6
+    neg         r4
     pxor        m4, m4
     pxor        m5, m5
-    pxor        m6, m6
+%if mmsize == 32
+    vbroadcasti128 m6, [ssd_nv12_shuf]
+%endif
 .loopy:
     mov         r6, r4
-    neg         r6
     pxor        m2, m2
     pxor        m3, m3
 .loopx:
@@ -555,11 +559,11 @@ cglobal pixel_ssd_nv12_core, 6,7,7
     mova        m1, [r0+r6+mmsize]
     psubw       m0, [r2+r6]
     psubw       m1, [r2+r6+mmsize]
-    PSHUFLW     m0, m0, q3120
-    PSHUFLW     m1, m1, q3120
-%if mmsize >= 16
-    pshufhw     m0, m0, q3120
-    pshufhw     m1, m1, q3120
+%if mmsize == 32
+    pshufb      m0, m6
+    pshufb      m1, m6
+%else
+    SBUTTERFLY wd, 0, 1, 6
 %endif
 %if cpuflag(xop)
     pmadcswd    m2, m0, m0, m2
@@ -577,59 +581,30 @@ cglobal pixel_ssd_nv12_core, 6,7,7
     psubd       m3, m1
 .no_overread:
 %endif
-%if mmsize >= 16 ; using HADDD would remove the mmsize/32 part from the
-                 ; equation above, putting the width limit at 8208
-    punpckhdq   m0, m2, m6
-    punpckhdq   m1, m3, m6
-    punpckldq   m2, m6
-    punpckldq   m3, m6
-    paddq       m3, m2
-    paddq       m1, m0
-    paddq       m4, m3
-    paddq       m4, m1
-%else ; unfortunately paddq is sse2
-      ; emulate 48 bit precision for mmx2 instead
-    mova        m0, m2
-    mova        m1, m3
-    punpcklwd   m2, m6
-    punpcklwd   m3, m6
-    punpckhwd   m0, m6
-    punpckhwd   m1, m6
-    paddd       m3, m2
-    paddd       m1, m0
-    paddd       m4, m3
-    paddd       m5, m1
-%endif
+    punpckhdq   m0, m2, m5 ; using HADDD would remove the mmsize/32 part from the
+    punpckhdq   m1, m3, m5 ; equation above, putting the width limit at 8208
+    punpckldq   m2, m5
+    punpckldq   m3, m5
+    paddq       m0, m1
+    paddq       m2, m3
+    paddq       m4, m0
+    paddq       m4, m2
     add         r0, r1
     add         r2, r3
     dec        r5d
     jg .loopy
-    mov         r3, r6m
-    mov         r4, r7m
+    mov         r0, r6m
+    mov         r1, r7m
 %if mmsize == 32
     vextracti128 xm0, m4, 1
     paddq      xm4, xm0
 %endif
-%if mmsize >= 16
-    movq      [r3], xm4
-    movhps    [r4], xm4
-%else ; fixup for mmx2
-    SBUTTERFLY dq, 4, 5, 0
-    mova        m0, m4
-    psrld       m4, 16
-    paddd       m5, m4
-    pslld       m0, 16
-    SBUTTERFLY dq, 0, 5, 4
-    psrlq       m0, 16
-    psrlq       m5, 16
-    movq      [r3], m0
-    movq      [r4], m5
-%endif
+    movq      [r0], xm4
+    movhps    [r1], xm4
     RET
 %endmacro ; SSD_NV12
-%endif ; HIGH_BIT_DEPTH
 
-%if HIGH_BIT_DEPTH == 0
+%else ; !HIGH_BIT_DEPTH
 ;-----------------------------------------------------------------------------
 ; void pixel_ssd_nv12_core( uint8_t *pixuv1, intptr_t stride1, uint8_t *pixuv2, intptr_t stride2,
 ;                           int width, int height, uint64_t *ssd_u, uint64_t *ssd_v )
@@ -643,12 +618,12 @@ cglobal pixel_ssd_nv12_core, 6,7
     add    r4d, r4d
     add     r0, r4
     add     r2, r4
+    neg     r4
     pxor    m3, m3
     pxor    m4, m4
     mova    m5, [pw_00ff]
 .loopy:
     mov     r6, r4
-    neg     r6
 .loopx:
 %if mmsize == 32 ; only 16-byte alignment is guaranteed
     movu    m2, [r0+r6]
@@ -686,21 +661,27 @@ cglobal pixel_ssd_nv12_core, 6,7
     add     r2, r3
     dec    r5d
     jg .loopy
-    mov     r3, r6m
-    mov     r4, r7m
-    HADDD   m3, m0
-    HADDD   m4, m0
-    pxor   xm0, xm0
-    punpckldq xm3, xm0
-    punpckldq xm4, xm0
-    movq  [r3], xm3
-    movq  [r4], xm4
+    mov     r0, r6m
+    mov     r1, r7m
+%if cpuflag(ssse3)
+    phaddd  m3, m4
+%else
+    SBUTTERFLY qdq, 3, 4, 0
+    paddd   m3, m4
+%endif
+%if mmsize == 32
+    vextracti128 xm4, m3, 1
+    paddd  xm3, xm4
+%endif
+    psllq  xm4, xm3, 32
+    paddd  xm3, xm4
+    psrlq  xm3, 32
+    movq  [r0], xm3
+    movhps [r1], xm3
     RET
 %endmacro ; SSD_NV12
 %endif ; !HIGH_BIT_DEPTH
 
-INIT_MMX mmx2
-SSD_NV12
 INIT_XMM sse2
 SSD_NV12
 INIT_XMM avx
@@ -2320,7 +2301,7 @@ cglobal hadamard_load
 ; clobber: m1..m3
 %macro SUM4x3 3 ; dc, left, top
     movq        m4, %2
-%ifid %1
+%ifnum sizeof%1
     movq        m5, %1
 %else
     movd        m5, %1
@@ -2597,7 +2578,7 @@ cglobal intra_satd_x3_8x8c, 0,6
 
 
 %macro PRED4x4_LOWPASS 5
-%ifid %5
+%ifnum sizeof%5
     pavgb       %5, %2, %3
     pxor        %3, %2
     pand        %3, [pb_1]
@@ -2676,7 +2657,7 @@ cglobal intra_satd_x3_8x8c, 0,6
     psignw    m%1, [pw_pmpmpmpm]
     paddw      m0, m%1
     psllw      m0, 2 ; hadamard(top), hadamard(left)
-    movhlps    m3, m0
+    MOVHL      m3, m0
     pshufb     m1, m0, [intrax9b_v1]
     pshufb     m2, m0, [intrax9b_v2]
     paddw      m0, m3
@@ -2713,7 +2694,7 @@ cglobal intra_satd_x3_8x8c, 0,6
     SBUTTERFLY qdq, 3, 0, 2
     paddw      m3, m0
 %endif
-    movhlps    m2, m1
+    MOVHL      m2, m1
     paddw      m1, m2
 %if cpuflag(xop)
     vphaddwq   m3, m3
@@ -2904,7 +2885,7 @@ cglobal intra_satd_x9_4x4, 3,4,16
     movddup    m0, m2
     pshufd     m1, m2, q3232
     movddup    m2, m3
-    movhlps    m3, m3
+    punpckhqdq m3, m3
     call .satd_8x4 ; ddr, ddl
     movddup    m2, m5
     pshufd     m3, m5, q3232
@@ -2956,11 +2937,7 @@ ALIGN 16
     psubw      m3, m11
     SATD_8x4_SSE 0, 0, 1, 2, 3, 13, 14, 0, swap
     pmaddwd    m0, [pw_1]
-%if cpuflag(sse4)
-    pshufd     m1, m0, q0032
-%else
-    movhlps    m1, m0
-%endif
+    MOVHL      m1, m0
     paddd    xmm0, m0, m1 ; consistent location of return value. only the avx version of hadamard permutes m0, so 3arg is free
     ret
 
@@ -2998,7 +2975,7 @@ cglobal intra_satd_x9_4x4, 3,4,8
     movddup    m0, m2
     pshufd     m1, m2, q3232
     movddup    m2, m3
-    movhlps    m3, m3
+    punpckhqdq m3, m3
     pmaddubsw  m0, m7
     pmaddubsw  m1, m7
     pmaddubsw  m2, m7
@@ -3010,18 +2987,18 @@ cglobal intra_satd_x9_4x4, 3,4,8
     mova       m3, [pred_buf+0x30]
     mova       m1, [pred_buf+0x20]
     movddup    m2, m3
-    movhlps    m3, m3
+    punpckhqdq m3, m3
     movq [spill+0x08], m0
     movddup    m0, m1
-    movhlps    m1, m1
+    punpckhqdq m1, m1
     call .satd_8x4 ; vr, vl
     mova       m3, [pred_buf+0x50]
     mova       m1, [pred_buf+0x40]
     movddup    m2, m3
-    movhlps    m3, m3
+    punpckhqdq m3, m3
     movq [spill+0x10], m0
     movddup    m0, m1
-    movhlps    m1, m1
+    punpckhqdq m1, m1
     call .satd_8x4 ; hd, hu
     movq [spill+0x18], m0
     mova       m1, [spill+0x20]
@@ -3064,17 +3041,11 @@ ALIGN 16
     psubw      m3, [fenc_buf+0x30]
     SATD_8x4_SSE 0, 0, 1, 2, 3, 4, 5, 0, swap
     pmaddwd    m0, [pw_1]
-%if cpuflag(sse4)
-    pshufd     m1, m0, q0032
-%else
-    movhlps    m1, m0
-%endif
+    MOVHL      m1, m0
     paddd    xmm0, m0, m1
     ret
 %endif ; ARCH
 %endmacro ; INTRA_X9
-
-
 
 %macro INTRA8_X9 0
 ;-----------------------------------------------------------------------------
@@ -3122,7 +3093,7 @@ cglobal intra_sad_x9_8x8, 5,6,9
     paddw       m1, m2
     paddw       m0, m3
     paddw       m0, m1
-    movhlps     m1, m0
+    MOVHL       m1, m0
     paddw       m0, m1
     movd    [r4+0], m0
 
@@ -3143,7 +3114,7 @@ cglobal intra_sad_x9_8x8, 5,6,9
     psadbw      m2, fenc57
     paddw       m1, m3
     paddw       m1, m2
-    movhlps     m2, m1
+    MOVHL       m2, m1
     paddw       m1, m2
     movd    [r4+2], m1
 
@@ -3154,7 +3125,7 @@ cglobal intra_sad_x9_8x8, 5,6,9
     movhps      m0, [r2+16]
     pxor        m2, m2
     psadbw      m0, m2
-    movhlps     m1, m0
+    MOVHL       m1, m0
     paddw       m0, m1
     psrlw       m0, 3
     pavgw       m0, m2
@@ -3170,7 +3141,7 @@ cglobal intra_sad_x9_8x8, 5,6,9
     paddw       m1, m2
     paddw       m0, m3
     paddw       m0, m1
-    movhlps     m1, m0
+    MOVHL       m1, m0
     paddw       m0, m1
     movd    [r4+4], m0
 
@@ -3203,7 +3174,7 @@ cglobal intra_sad_x9_8x8, 5,6,9
     mova pred(3,3), m2
     psadbw      m2, fenc57
     paddw       m1, m2
-    movhlps     m2, m1
+    MOVHL       m2, m1
     paddw       m1, m2
     movd    [r4+6], m1
 
@@ -3231,7 +3202,7 @@ cglobal intra_sad_x9_8x8, 5,6,9
     paddw       m1, m2
     paddw       m0, m3
     paddw       m0, m1
-    movhlps     m1, m0
+    MOVHL       m1, m0
     paddw       m0, m1
 %if cpuflag(sse4)
     pextrw [r4+14], m0, 0
@@ -3270,7 +3241,7 @@ cglobal intra_sad_x9_8x8, 5,6,9
     mova pred(4,3), m2
     psadbw      m2, fenc57
     paddw       m1, m2
-    movhlps     m2, m1
+    MOVHL       m2, m1
     paddw       m1, m2
     movd    [r4+8], m1
 
@@ -3304,7 +3275,7 @@ cglobal intra_sad_x9_8x8, 5,6,9
     mova pred(5,3), m2
     psadbw      m2, fenc57
     paddw       m1, m2
-    movhlps     m2, m1
+    MOVHL       m2, m1
     paddw       m1, m2
     movd   [r4+10], m1
 
@@ -3340,7 +3311,7 @@ cglobal intra_sad_x9_8x8, 5,6,9
     psadbw      m3, fenc57
     paddw       m1, m2
     paddw       m1, m3
-    movhlps     m2, m1
+    MOVHL       m2, m1
     paddw       m1, m2
     ; don't just store to [r4+12]. this is too close to the load of dqword [r4] and would cause a forwarding stall
     pslldq      m1, 12
@@ -3378,7 +3349,7 @@ cglobal intra_sad_x9_8x8, 5,6,9
     psadbw      m0, fenc57
     paddw       m1, m2
     paddw       m1, m0
-    movhlps     m2, m1
+    MOVHL       m2, m1
     paddw       m1, m2
     movd       r2d, m1
 
@@ -3398,7 +3369,7 @@ cglobal intra_sad_x9_8x8, 5,6,9
     paddusw    m0, m0
     paddusw    m0, m0
     paddw      m0, [off(pw_s00112233)]
-    movhlps    m1, m0
+    MOVHL      m1, m0
     pminsw     m0, m1
     pshuflw    m1, m0, q0032
     pminsw     m0, m1
@@ -3626,7 +3597,7 @@ cglobal intra_sa8d_x9_8x8, 5,6,16
 
     pmaddwd     m0, [pw_1]
     phaddw     m10, m11
-    movhlps     m1, m0
+    MOVHL       m1, m0
     paddw       m0, m1
     pshuflw     m1, m0, q0032
     pavgw       m0, m1
@@ -3648,7 +3619,7 @@ cglobal intra_sa8d_x9_8x8, 5,6,16
     ; 8x8 sa8d is up to 15 bits; +bitcosts and saturate -> 15 bits; pack with 1 bit index
     paddusw    m0, m0
     paddw      m0, [off(pw_s00001111)]
-    movhlps    m1, m0
+    MOVHL      m1, m0
     pminsw     m0, m1
     pshuflw    m1, m0, q0032
     mova       m2, m0
@@ -4578,7 +4549,7 @@ cglobal intra_sad_x9_8x8, 5,7,8
     paddw       m1, m2
     vextracti128 xm2, m1, 1
     paddw      xm1, xm2
-    movhlps    xm2, xm1
+    MOVHL      xm2, xm1
     paddw      xm1, xm2
     movd       r2d, xm1
 
@@ -4624,67 +4595,82 @@ cglobal intra_sad_x9_8x8, 5,7,8
 ;-----------------------------------------------------------------------------
 %macro SSIM_ITER 1
 %if HIGH_BIT_DEPTH
-    movdqu    m5, [r0+(%1&1)*r1]
-    movdqu    m6, [r2+(%1&1)*r3]
+    movu      m4, [r0+(%1&1)*r1]
+    movu      m5, [r2+(%1&1)*r3]
+%elif cpuflag(avx)
+    pmovzxbw  m4, [r0+(%1&1)*r1]
+    pmovzxbw  m5, [r2+(%1&1)*r3]
 %else
-    movq      m5, [r0+(%1&1)*r1]
-    movq      m6, [r2+(%1&1)*r3]
-    punpcklbw m5, m0
-    punpcklbw m6, m0
+    movq      m4, [r0+(%1&1)*r1]
+    movq      m5, [r2+(%1&1)*r3]
+    punpcklbw m4, m7
+    punpcklbw m5, m7
 %endif
 %if %1==1
     lea       r0, [r0+r1*2]
     lea       r2, [r2+r3*2]
 %endif
-%if %1==0
-    movdqa    m1, m5
-    movdqa    m2, m6
+%if %1 == 0 && cpuflag(avx)
+    SWAP       0, 4
+    SWAP       1, 5
+    pmaddwd   m4, m0, m0
+    pmaddwd   m5, m1, m1
+    pmaddwd   m6, m0, m1
 %else
+%if %1 == 0
+    mova      m0, m4
+    mova      m1, m5
+%else
+    paddw     m0, m4
     paddw     m1, m5
-    paddw     m2, m6
 %endif
-    pmaddwd   m7, m5, m6
+    pmaddwd   m6, m4, m5
+    pmaddwd   m4, m4
     pmaddwd   m5, m5
-    pmaddwd   m6, m6
-    ACCUM  paddd, 3, 5, %1
-    ACCUM  paddd, 4, 7, %1
-    paddd     m3, m6
+%endif
+    ACCUM  paddd, 2, 4, %1
+    ACCUM  paddd, 3, 6, %1
+    paddd     m2, m5
 %endmacro
 
 %macro SSIM 0
-cglobal pixel_ssim_4x4x2_core, 4,4,8
+%if HIGH_BIT_DEPTH
+cglobal pixel_ssim_4x4x2_core, 4,4,7
     FIX_STRIDES r1, r3
-    pxor      m0, m0
+%else
+cglobal pixel_ssim_4x4x2_core, 4,4,7+notcpuflag(avx)
+%if notcpuflag(avx)
+    pxor      m7, m7
+%endif
+%endif
     SSIM_ITER 0
     SSIM_ITER 1
     SSIM_ITER 2
     SSIM_ITER 3
-    ; PHADDW m1, m2
-    ; PHADDD m3, m4
-    movdqa    m7, [pw_1]
-    pshufd    m5, m3, q2301
-    pmaddwd   m1, m7
-    pmaddwd   m2, m7
-    pshufd    m6, m4, q2301
-    packssdw  m1, m2
-    paddd     m3, m5
-    pshufd    m1, m1, q3120
-    paddd     m4, m6
-    pmaddwd   m1, m7
-    punpckhdq m5, m3, m4
-    punpckldq m3, m4
-
 %if UNIX64
-    %define t0 r4
+    DECLARE_REG_TMP 4
 %else
-    %define t0 rax
-    mov t0, r4mp
+    DECLARE_REG_TMP 0
+    mov       t0, r4mp
 %endif
-
-    movq      [t0+ 0], m1
-    movq      [t0+ 8], m3
-    movhps    [t0+16], m1
-    movq      [t0+24], m5
+%if cpuflag(ssse3)
+    phaddw    m0, m1
+    pmaddwd   m0, [pw_1]
+    phaddd    m2, m3
+%else
+    mova      m4, [pw_1]
+    pmaddwd   m0, m4
+    pmaddwd   m1, m4
+    packssdw  m0, m1
+    shufps    m1, m2, m3, q2020
+    shufps    m2, m3, q3131
+    pmaddwd   m0, m4
+    paddd     m2, m1
+%endif
+    shufps    m1, m0, m2, q2020
+    shufps    m0, m2, q3131
+    mova    [t0], m1
+    mova [t0+16], m0
     RET
 
 ;-----------------------------------------------------------------------------
@@ -4842,7 +4828,7 @@ cglobal pixel_asd8, 5,5
     HADDW    m0, m1
     ABSD     m1, m0
 %else
-    movhlps  m1, m0
+    MOVHL    m1, m0
     paddw    m0, m1
     ABSW     m1, m0
 %endif

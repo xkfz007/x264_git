@@ -1,7 +1,7 @@
 /*****************************************************************************
  * pixel.h: x86 pixel metrics
  *****************************************************************************
- * Copyright (C) 2003-2015 x264 project
+ * Copyright (C) 2003-2016 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -145,9 +145,6 @@ int x264_intra_sad_x9_8x8_sse4  ( uint8_t *, uint8_t *, uint8_t *, uint16_t *, u
 int x264_intra_sad_x9_8x8_avx   ( uint8_t *, uint8_t *, uint8_t *, uint16_t *, uint16_t * );
 int x264_intra_sad_x9_8x8_avx2  ( uint8_t *, uint8_t *, uint8_t *, uint16_t *, uint16_t * );
 
-void x264_pixel_ssd_nv12_core_mmx2( pixel *pixuv1, intptr_t stride1,
-                                    pixel *pixuv2, intptr_t stride2, int width,
-                                    int height, uint64_t *ssd_u, uint64_t *ssd_v );
 void x264_pixel_ssd_nv12_core_sse2( pixel *pixuv1, intptr_t stride1,
                                     pixel *pixuv2, intptr_t stride2, int width,
                                     int height, uint64_t *ssd_u, uint64_t *ssd_v );
